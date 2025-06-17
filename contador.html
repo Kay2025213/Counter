@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contador</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #222;
+      color: white;
+      text-align: center;
+      margin-top: 80px;
+      transition: background-color 0.3s;
+    }
+
+    h1 {
+      font-size: 50px;
+    }
+
+    p {
+      font-size: 20px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      background-color: #444;
+      color: white;
+      border-radius: 8px;
+    }
+
+    button:hover {
+      background-color: #666;
+    }
+
+    #historialBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #333;
+    }
+
+    #ventanaHistorial {
+      display: none;
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      width: 300px;
+      max-height: 400px;
+      overflow-y: auto;
+      background-color: #111;
+      border: 2px solid #666;
+      border-radius: 10px;
+      padding: 15px;
+      z-index: 1000;
+      text-align: left;
+    }
+
+    #ventanaHistorial h3 {
+      margin-top: 0;
+      color: #0f0;
+    }
+
+    .record-item {
+      margin-bottom: 8px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 4px;
+    }
+
+    #celebracion {
+      display: none;
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: #ff0;
+      font-weight: bold;
+      text-shadow: 2px 2px 5px #000;
+      animation: boom 1s ease-in-out infinite alternate;
+      z-index: 9999;
+    }
+
+    @keyframes boom {
+      from {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      to {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.7;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Contador: <span id="contador">0</span></h1>
+  <h2>Récord tuyo: <span id="record">0</span></h2> 
+  <p>Rompe el record, el record mundial son 10000000000 toques.</p>
+  <button onclick="reiniciarContador()">Reiniciar</button>
+  <button id="historialBtn" onclick="toggleHistorial()">📋 Historial</button>
+
+  <div id="ventanaHistorial">
+    <h3>Historial de Récords</h3>
+    <div id="listaHistorial"></div>
+  </div>
+
+  <div id="celebracion">🎉 ¡Nuevo récord! 🎉</div>
+
+  <!-- Sonido del clic -->
+  <audio id="sonido" src="click.mp3" preload="auto"></audio>
+
+  <!-- Música de fondo -->
+  <audio id="musica" src="musica.mp3" preload="auto" loop></audio>
+
+  <script>
+    let contador = 0;
+    let spacePressed = false;
+    let musicaIniciada = false;
+    let celebracionMostrada = false;
+
+    const sonido = document.getElementById("sonido");
+    const musica = document.getElementById("musica");
+
+    musica.volume = 0.2;
+    sonido.volume = 0.3;
+
+    let record = parseInt(localStorage.getItem("record")) || 0;
+    let historial = JSON.parse(localStorage.getItem("historialRecord")) || [];
+
+    document.getElementById("record").textContent = record;
+
+    function actualizarHistorial() {
+      const lista = document.getElementById("listaHistorial");
+      lista.innerHTML = "";
+      historial.slice().reverse().forEach((r, i) => {
+        const item = document.createElement("div");
+        item.className = "record-item";
+        item.textContent = `#${historial.length - i}: ${r} puntos`;
+        lista.appendChild(item);
+      });
+    }
+
+    function toggleHistorial() {
+      const ventana = document.getElementById("ventanaHistorial");
+      if (ventana.style.display === "none") {
+        actualizarHistorial();
+        ventana.style.display = "block";
+      } else {
+        ventana.style.display = "none";
+      }
+    }
+
+    function cambiarColorFondo() {
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function reproducirSonido() {
+      sonido.currentTime = 0;
+      sonido.play();
+    }
+
+    function iniciarMusica() {
+      if (!musicaIniciada) {
+        musica.play().catch(() => {});
+        musicaIniciada = true;
+      }
+    }
+
+    function reiniciarContador() {
+      contador = 0;
+      document.getElementById("contador").textContent = contador;
+    }
+
+    function mostrarCelebracion() {
+      if (celebracionMostrada) return;  // Solo mostrar 1 vez por sesión
+
+      celebracionMostrada = true;
+
+      const celebracion = document.getElementById("celebracion");
+      celebracion.style.display = "block";
+
+      setTimeout(() => {
+        celebracion.style.display = "none";
+      }, 3000);
+    }
+
+    document.addEventListener('keydown', function(event) {
+      iniciarMusica();
+
+      if (event.code === 'Space' && !spacePressed) {
+        event.preventDefault();
+        spacePressed = true;
+        contador += 10;
+        document.getElementById("contador").textContent = contador;
+        cambiarColorFondo();
+        reproducirSonido();
+
+        if (contador > record) {
+          record = contador;
+          document.getElementById("record").textContent = record;
+          localStorage.setItem("record", record);
+
+          historial.push(record);
+          localStorage.setItem("historialRecord", JSON.stringify(historial));
+
+          mostrarCelebracion();
+        }
+      }
+    });
+
+    document.addEventListener('keyup', function(event) {
+      if (event.code === 'Space') {
+        spacePressed = false;
+      }
+    });
+  </script>
+</body>
+</html>
